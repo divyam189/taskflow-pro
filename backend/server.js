@@ -24,21 +24,28 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
 const server = http.createServer(app);
+
+const CLIENT_URL =
+  process.env.CLIENT_URL ||
+  "https://taskflow-pro-k5ns.onrender.com";
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: CLIENT_URL,
     credentials: true,
   },
 });
+
 initSocket(io);
 registerSocketHandlers(io);
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: CLIENT_URL,
     credentials: true,
   })
 );
+
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json({ limit: "1mb" }));
@@ -65,6 +72,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
