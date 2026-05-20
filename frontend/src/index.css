@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+body {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.fc {
+  --fc-border-color: #cbd5e1;
+  --fc-button-bg-color: #4f46e5;
+  --fc-button-border-color: #4f46e5;
+  --fc-button-hover-bg-color: #4338ca;
+  --fc-today-bg-color: rgba(99, 102, 241, 0.12);
+  font-size: 0.875rem;
+}
+.fc-dark .fc {
+  --fc-border-color: #334155;
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: #1e293b;
+  --fc-list-event-hover-bg-color: #334155;
+}
+.fc .fc-button {
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+.fc .fc-toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+}

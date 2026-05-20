@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum FocusSessionType {
+  WORK
+  BREAK
+}
+
+model User {
+  id                String                @id @default(cuid())
+  name              String
+  email             String                @unique
+  password          String
+  role              Role                  @default(MEMBER)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  projects          Project[]             @relation("ProjectCreator")
+  memberships       ProjectMember[]
+  assignedTasks     Task[]                @relation("TaskAssignee")
+  activityLogs      ActivityLog[]
+  comments          Comment[]
+  notifications     Notification[]
+  messages          Message[]
+  chatReadStates    ChatReadState[]
+  meetingsStarted   Meeting[]             @relation("MeetingStarter")
+  focusSessions     FocusSession[]
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  status      ProjectStatus   @default(PLANNING)
+  dueDate     DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  createdById String
+  createdBy   User            @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members     ProjectMember[]
+  tasks       Task[]
+  chatRoom    ChatRoom?
+  meetings    Meeting[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model Task {
+  id            String         @id @default(cuid())
+  title         String
+  description   String?
+  priority      TaskPriority   @default(MEDIUM)
+  status        TaskStatus     @default(TODO)
+  dueDate       DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  projectId     String
+  assignedTo    String?
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee      User?          @relation("TaskAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  comments      Comment[]
+  focusSessions FocusSession[]
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String
+  metadata  String?
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Project-scoped team chat room (one per project)
+model ChatRoom {
+  id        String          @id @default(cuid())
+  projectId String          @unique
+  createdAt DateTime        @default(now())
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  readStates ChatReadState[]
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  chatRoomId String
+  userId     String
+  createdAt  DateTime @default(now())
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([chatRoomId, createdAt])
+}
+
+model ChatReadState {
+  id         String   @id @default(cuid())
+  userId     String
+  chatRoomId String
+  lastReadAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chatRoomId])
+}
+
+model Meeting {
+  id          String    @id @default(cuid())
+  title       String
+  roomSlug    String    @unique
+  projectId   String
+  startedById String
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  startedBy   User      @relation("MeetingStarter", fields: [startedById], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model FocusSession {
+  id              String           @id @default(cuid())
+  userId          String
+  taskId          String?
+  type            FocusSessionType @default(WORK)
+  durationMinutes Int              @default(25)
+  completedAt     DateTime         @default(now())
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task            Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId, completedAt])
+}
